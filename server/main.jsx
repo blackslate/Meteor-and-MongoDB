@@ -1,5 +1,9 @@
   import { Meteor } from 'meteor/meteor'
-  import { Cards } from '/imports/api/cards';
+  import { Cards } from '/imports/api/cards'
+  import { Polls } from '/imports/api/polls'
+  // import { mongoTest } from './mongo-test.js'
+  // import './flashcards'
+  // import './polled'
 
 
   Meteor.startup(() => {
@@ -28,5 +32,9 @@
       cards.forEach( card => {
         Cards.insert(card)
       })
+    }
+
+    if (!Polls.find().count()) {
+      console.log("No Polls")
     }
   })

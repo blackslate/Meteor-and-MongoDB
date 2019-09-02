@@ -4,6 +4,7 @@ import React, { Component } from 'react'
 import { withTracker } from 'meteor/react-meteor-data';
 
 import { Cards } from '../api/cards' // Mongo collection
+import{ Polls } from '../api/polls' // Mongo collection
 
 
 class CardsComponent extends Component {
