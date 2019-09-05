@@ -20,7 +20,7 @@ A MongoDB installation stores data at two levels: `db` (for database) and `colle
 
 For example, to store several sets of flashcards in a single MongoDB collection, you could create a document with two levels for each set, like this:
 
-```json
+```
 
     { "_id":   "NAME OF FLASHCARD SET"
     , "type":  "flashcard set"
@@ -41,7 +41,7 @@ However, when the value of any property or sub-property in a document is altered
 
 It therefore makes sense to minimize the nesting depth. To do this, you could store each flashcard set as a separate collection, so that each card is a distinct document. A Flashcard collection could look like this:
 
-```json
+```
 
   Collection NAME_OF_FLASHCARD_SET:
   
@@ -282,8 +282,8 @@ While this version is shorter, I find that is easier to understand what the code
 
 # Flashcards
 
-###* 01
-###* 02
+### * 01
+### * 02
 ---
 
 ### 6. Use `meteor mongo` to add more documents to the `Tame` collection
@@ -329,10 +329,10 @@ Look in the browser window. You should see that there are now two more entries s
 
 # Flashcards
 
-###* 01
-###* 02
-###* 03
-###* 04
+### * 01
+### * 02
+### * 03
+### * 04
 
 This demonstrates that the connection between your Meteor app and the Mongo database is active.
 
@@ -619,7 +619,7 @@ You'll notice that this is currently almost identical to the `imports/ui/Tame.js
 * The references to `tame` and `Tame` have been replaced by `wild` and `Wild`
 * `const Wild = new Mongo.Collection('wild')` is used instead of `import { Tame } from '../api/tame' // Mongo collection`. This is because there is no need to populate the collection with any dummy data. So it's enough just to create a new `Mongo.Collection` with the name `wild` on the Client, and Meteor will provide a blackbox connection to the collection with the same name that you defined on the server.
 
-** Tell the App to display the `Wild` component **
+**Tell the App to display the `Wild` component**  
 To get the changing data to appear in the browser, you'll need to make one more change, to the `imports/ui/App.jsx` file:
 
 ```javascript
@@ -643,16 +643,16 @@ In the browser window, you should now see:
 
 # Flashcards
 
-###* 01
-###* 02
-###* 03
-###* 04
+### * 01
+### * 02
+### * 03
+### * 04
 ```
 ```
-###* *2*
-###* *3*
-###* *4*
-###* *5*
+### * *2*
+### * *3*
+### * *4*
+### * *5*
 
 The first set of numbers (with double digits) should remain the same. These were created once and stored in the `Tame` database. The second set of numbers (with single digits) should change once every second, as the `poll` function displays the new data received from the `getData`/`dataSource` function.
 
@@ -661,6 +661,7 @@ While your Meteor app is running, open a Terminal window and cd to the folder th
 
 **`meteor mongo`**
 Check the names of the collections held in the meteor db:
+
 **`meteor:PRIMARY> show collections`**
 ```bash
 links
@@ -669,25 +670,28 @@ tame
 users
 ```
 The collection names have not changed. If you like you can check that the other databases stored on the MongoDB server have do not have a `wild` collection either:
-```bash
-show databases
+
+**`meteor:PRIMARY> show databases`**
+```
 admin
 config
 local
 meteor
+```
+**`meteor:PRIMARY> use admin`**    
+`switched to db admin`  
+**`meteor:PRIMARY> show collections`**  
+` `  
 
-meteor:PRIMARY> use admin
-switched to db admin
-meteor:PRIMARY> show collections
+**`meteor:PRIMARY> use config`**  
+`switched to db config`  
+**`meteor:PRIMARY> show collections`**  
+`transactions`
 
-meteor:PRIMARY> use config
-switched to db config
-meteor:PRIMARY> show collections
-transactions
-
-meteor:PRIMARY> use local
-switched to db local
-meteor:PRIMARY> show collections
+**`meteor:PRIMARY> use local`**  
+`switched to db local`  
+**`meteor:PRIMARY> show collections`**  
+```bash
 oplog.rs
 replset.election
 replset.minvalid
@@ -834,7 +838,7 @@ In this case, that's good news. It means that your `poll` function is gracefully
 
 Create a new script at `server/externalMongoDB.jsx`, and paste the following code:
 ```javascript
-    import { MongoClient } from 'mongodb'
+  import { MongoClient } from 'mongodb'
 
 
   class ExternalMongoDB {
@@ -906,21 +910,20 @@ Create a new script at `server/externalMongoDB.jsx`, and paste the following cod
   , host:   "192.168.1.50"
   , port:   "27017"
   })
-```]
+```
+]
 
 In the `server/main.jsx` script, add a line to import this `externalMongoDB.jsx` script:
-```
+```javascript
 import { Meteor } from 'meteor/meteor'
 
-  // Ensure that the scripts that publish collections are run on the
-  // server
-  import '/imports/api/tame'
-  import './externalMongoDB'
-  import './wild'
+// Ensure that the scripts that publish collections are run on the
+// server
+import '/imports/api/tame'
+import './externalMongoDB'
+import './wild'
 
+Meteor.startup(() => {
 
-  Meteor.startup(() => {
-
-  })
-
-
+})
+```
