@@ -24,18 +24,21 @@
 
 import { Meteor } from 'meteor/meteor'
 import { Mongo } from 'meteor/mongo'
+import externalDB from './externalMongoDB'
+import handleError from './errorTracker'
 
 const POLL_INTERVAL = 1000
-const Wild = new Mongo.Collection("wild")
+const COLLECTION_NAME = "wild"
+const Wild = new Mongo.Collection(COLLECTION_NAME)
 
 
 
-Meteor.publish("wild", function publishWild() {
+Meteor.publish(COLLECTION_NAME, function publishWild() {
   // `this` is a Subscription object
   // Documentation: https://docs.meteor.com/api/pubsub.html
   // 
   // It has the format:
-  //  { userId: <may beO null>
+  //  { userId: <may be null>
   //  , connection {
   //      id:            <hash string>
   //    , close:         [Function: close]
@@ -50,21 +53,9 @@ Meteor.publish("wild", function publishWild() {
   //      , 'accept-language': 'en-US,enq=0.9,ruq=0.8,fr-FRq=0.7,frq=0.6'
   //      }
   //    }
-  //  , _session: {
-  //      id:     <hash string>
-  //    , userId: <may be null>
-  //    , ... lots of other properties
-  //    }
-  //  , _handler:            <pointer to this function itself>
-  //  , _subscriptionId:     <hash string>
-  //  , _name:               <the name of the collection to publish>
-  //  , _params:             <array>
-  //  , _subscriptionHandle: <hash string>
-  //  , _deactivated:        <boolean (false)>
+  //  , ... more private properties
   //  }
-
-  // console.log(getAllMethodNames(this))
-  // 
+  //  
   // It possesses the following collection-specific public methods:
   //  
   // added
@@ -76,8 +67,8 @@ Meteor.publish("wild", function publishWild() {
   // stop
 
   const publishedKeys = {}
-  const dataSource = FauxServer()
-  let ready = false
+  const dataSource    = externalDB.getDataSource()
+  let ready           = false
 
   const poll = () => {
 
@@ -112,19 +103,21 @@ Meteor.publish("wild", function publishWild() {
     }
 
 
-    function transientNetworkFailure(error) {
-      console.log(error)
-      console.log("Keep calm and carry on\n")
+    const trackError = (error) => {
+      if (ready && /^Server.*unavailable$/.test(error.message)) {
+        ready = false
+      }
+
+      handleError(error, COLLECTION_NAME)
     }
 
 
-    const promise = dataSource()
-    promise.then(documentsReceived, transientNetworkFailure)
+    const promise = dataSource(COLLECTION_NAME)
+    promise.then(documentsReceived, trackError)
   }
 
-  // Refresh the publication on a regular basis.
+  // Refresh the publication now and on a regular basis.
   poll()
-
   const interval = Meteor.setInterval(poll, POLL_INTERVAL)
 
   this.onStop(() => {
@@ -133,100 +126,14 @@ Meteor.publish("wild", function publishWild() {
 })
 
 
+// Utility
 
-// Simulated server
+function removeFrom(array, item) {
+  const index = array.indexOf(item)
 
-function FauxServer() {
-  // Create some data to cycle through
-  const data = [
-    { "_id": "0" }
-  , { "_id": "1" }
-  , { "_id": "2" }
-  , { "_id": "3" }
-  , { "_id": "4" }
-  , { "_id": "5" }
-  , { "_id": "6" }
-  , { "_id": "7" }
-  , { "_id": "8" }
-  , { "_id": "9" }
-  ]
-
-  return function getData() {
-    // Change the contents of the collection on every update to
-    // simulate a remote source of changing data, available through
-    // a REST API.
-    const documents = data.filter((doc, index) => index < 4)
-    data.push(data.shift())
-    
-    return new Promise((resolve, reject) => {
-      // Fail to deliver on average once every 10 times
-      const reliable = Math.floor(Math.random() * 100)   // 0 - 99
-      // Take a variable time to respond
-      const delay = Math.floor(Math.random()*900) + 100 // up to 1s
-
-      setTimeout(respond, delay)
-
-      function respond() {
-        if (reliable) { // 99 times out of 100
-          resolve(documents)
-
-        } else {
-          reject(new Error(
-            "Data randomly lost.\n" 
-          + "See RFC 748: TELNET RANDOMLY-LOSE Option\n"
-          + "https://tools.ietf.org/html/rfc748\n")
-          )
-        }
-      }
-    })
+  if (index < 0) {
+    // The item is not in the array
+  } else {
+    array.splice(index, 1)
   }
 }
-
-
-
-// Utilities
-
-  function removeFrom(array, item) {
-    const index = array.indexOf(item)
-
-    if (index < 0) {
-      // The item is not in the array
-    } else {
-      array.splice(index, 1)
-    }
-  }
-
-
-// Source: https://stackoverflow.com/a/40577337/1927589
-function getAllMethodNames(obj) {
-  let methods = new Set()
-  while (obj = Reflect.getPrototypeOf(obj)) {
-    let keys = Reflect.ownKeys(obj)
-    keys.forEach((k) => methods.add(k))
-  }
-  return methods
-}
-
-
-function getCollectionNames(callback) {
-  const driver = MongoInternals.defaultRemoteCollectionDriver()
-  const db     = driver.mongo.db
-
-  const a = db.listCollections()
-  console.log(a)
-
-  db.collections() // returns a promise if there is no callback
-    .then( collectionArray => {
-      const collectionNames = collectionArray.map(
-        collection => collection.s.name
-      )
-
-      if (typeof callback === "function") {
-        return callback(collectionNames)
-      } else {
-        console.log(collectionNames)
-      }
-    })
-}
-
-// getCollectionNames()

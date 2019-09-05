@@ -832,3 +832,95 @@ In this case, that's good news. It means that your `poll` function is gracefully
 ### 13. Connecting the `wild` collection to a real MongoDB server
 [ASIDE: MongoDB provides a free [MongoDB Community Edition](https://docs.mongodb.com/manual/administration/install-community/) server. Setting it up and testing that Meteor can connect to it takes a number of steps which I have described in a [separate tutorial](/). You might like to work through that tutorial and then come back here, or you might prefer to skip that step and simply connect to the MongoDB server that Meteor is already running for you. In either case, the only difference in what follows will be the URL and the port number that you use to connect to the "external" MongoDB server. Please replace the values in the code below with your own values.]
 
+Create a new script at `server/externalMongoDB.jsx`, and paste the following code:
+```javascript
+    import { MongoClient } from 'mongodb'
+
+
+  class ExternalMongoDB {
+    constructor({ // Connect to local meteor mongo by default
+      host   = "localhost"
+    , port   = 3001
+    , dbName = "meteor"
+    }) {
+      this.dbName = dbName
+      this.url    = `mongodb://${host}:${port}`
+
+      // Ensure DeprecationWarnings are not shown in the Terminal 
+      const options = {
+        useNewUrlParser:    true
+      , useUnifiedTopology: true
+      }
+      this.client = new MongoClient(this.url, options)
+
+      this.client.connect(this.connectionCallback.bind(this))
+    }
+
+
+    connectionCallback(error, result) {
+      if (error) {
+        return console.log(error)
+      }
+
+      console.log(`Connected successfully to ${this.url}`)
+
+      this.db = this.client.db(this.dbName)
+
+      this.runSmokeTest()
+    }
+
+
+    runSmokeTest() {
+      this.closeConnection()
+    }
+
+
+    closeConnection() {
+      const promise = this.client.close()
+      promise.then(
+        () => console.log(`Connection to ${this.url} closed\n`)
+      , (reason) => console.log(
+          `Error closing connection to ${this.url}\n`
+        , reason
+        )
+      )
+    }
+  }
+
+
+  const externalDB = new ExternalMongoDB({
+    dbName: "testing_only"
+  // , host:   "localhost"
+  // , port:   27017
+  })
+
+
+  export default externalDB
+```
+[[WARNING: This script assumes that you ran `meteor npm install --save mongodb` in step 1, and that the `mongodb` module is correctly installed]]
+
+[NOTE: The command that instanciates `externalDB` at the end of the code above connects by default to the MongoDB server installed by Meteor. If you have launched your own MongoDB server and wish to connect to that, uncomment the `host` and `port` lines, and set the values as appropriate for your setup. For example:
+```javascript
+  const externalDB = new ExternalMongoDB({
+    dbName: "testing_only"
+  , host:   "192.168.1.50"
+  , port:   "27017"
+  })
+```]
+
+In the `server/main.jsx` script, add a line to import this `externalMongoDB.jsx` script:
+```
+import { Meteor } from 'meteor/meteor'
+
+  // Ensure that the scripts that publish collections are run on the
+  // server
+  import '/imports/api/tame'
+  import './externalMongoDB'
+  import './wild'
+
+
+  Meteor.startup(() => {
+
+  })
+
+
