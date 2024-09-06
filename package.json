@@ -11,8 +11,8 @@
     "@babel/runtime": "^7.3.4",
     "bcrypt": "^3.0.6",
     "classnames": "^2.2.6",
-    "meteor-node-stubs": "^0.4.1",
-    "mongodb": "^3.3.2",
+    "meteor-node-stubs": "^1.2.8",
+    "mongodb": "^3.6.6",
     "react": "^16.9.0",
     "react-dom": "^16.9.0"
   },
